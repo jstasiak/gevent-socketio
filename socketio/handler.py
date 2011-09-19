@@ -100,7 +100,8 @@ class SocketIOHandler(WSGIHandler):
             session = self.server.get_session(session_id)
 
         if not session:
-            raise Exception('ERROR: No session with id {0} available'.format(session_id))
+            print('ERROR: No session with id {0} available'.format(session_id))
+            return
 
         # Make the session object available for WSGI apps
         self.environ['socketio'].session = session
