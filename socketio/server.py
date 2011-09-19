@@ -50,16 +50,16 @@ class SocketIOServer(WSGIServer):
         self.set_environ({'socketio': SocketIOProtocol(handler)})
         handler.handle()
 
-    def get_session(self, session_id=''):
+    def get_session(self, session_id = None):
         """Return an existing or new client Session."""
 
-        session = self.sessions.get(session_id)
-
-        if session is None:
+        if not session_id:
             session = Session()
             self.sessions[session.session_id] = session
         else:
-            session.incr_hits()
+            session = self.sessions.get(session_id)
+            if session:
+                session.incr_hits()
 
         return session
 

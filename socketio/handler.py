@@ -74,7 +74,7 @@ class SocketIOHandler(WSGIHandler):
         request_tokens = self.RE_REQUEST_URL.match(path)
 
         # Parse request URL and QUERY_STRING and do handshake
-        if request_tokens:
+        if request_tokens and request_tokens.groupdict()['namespace'] == self.server.namespace:
             request_tokens = request_tokens.groupdict()
         else:
             handshake_tokens = self.RE_HANDSHAKE_URL.match(path)
@@ -98,6 +98,9 @@ class SocketIOHandler(WSGIHandler):
             session = self.server.get_session()
         else:
             session = self.server.get_session(session_id)
+
+        if not session:
+            raise Exception('ERROR: No session with id {0} available'.format(session_id))
 
         # Make the session object available for WSGI apps
         self.environ['socketio'].session = session
