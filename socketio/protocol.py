@@ -76,7 +76,6 @@ class SocketIOProtocol(object):
 
     def decode(self, data):
         messages = []
-        data.encode('utf-8', 'replace')
         msg_type, msg_id, tail = data.split(":", 2)
 
         print "RECEIVED MSG TYPE ", msg_type
