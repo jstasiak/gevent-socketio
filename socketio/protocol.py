@@ -9,8 +9,11 @@ class SocketIOProtocol(object):
         self.handler = handler
         self.session = None
 
-    def ack(self, msg_id, params):
-        self.send("6:::%s%s" % (msg_id, json.dumps(params)))
+    def ack(self, msg_id, *args):
+        if '+' not in msg_id:
+            assert not args
+
+        self.send("6:::%s%s" % (msg_id, json.dumps(args) if '+' in msg_id else ''))
 
     def send(self, message, destination=None):
         if destination is None:
@@ -62,6 +65,7 @@ class SocketIOProtocol(object):
         if session is None:
             raise Exception("No client with that session exists")
         else:
+            print('{0} <= {1!r}'.format(self.session.session_id, message))
             session.put_client_msg(message)
 
     def encode(self, message):
@@ -78,7 +82,7 @@ class SocketIOProtocol(object):
         messages = []
         msg_type, msg_id, tail = data.split(":", 2)
 
-        print "RECEIVED MSG TYPE ", msg_type
+        print('{0} => {1!r}'.format(self.session.session_id, data))
 
         if msg_type == "0":
             self.session.kill()
@@ -100,6 +104,7 @@ class SocketIOProtocol(object):
                 'data': data,
             }
             messages.append(message)
+            self.ack(msg_id)
         elif msg_type == "4":
             messages.append(json.loads(data))
         elif msg_type == "5":

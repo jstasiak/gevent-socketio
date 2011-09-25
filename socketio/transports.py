@@ -36,7 +36,6 @@ class BaseTransport(object):
             headers.append(self.content_type)
 
         headers.extend(self.headers)
-        print headers
         self.handler.start_response(status, headers, **kwargs)
 
 
