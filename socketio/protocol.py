@@ -13,25 +13,32 @@ class SocketIOProtocol(object):
         if '+' not in msg_id:
             assert not args
 
-        self.send("6:::%s%s" % (msg_id, json.dumps(args) if '+' in msg_id else ''))
+        self._send_raw("6:::%s%s" % (msg_id, json.dumps(args) if '+' in msg_id else ''))
 
-    def send(self, message, destination=None):
-        if destination is None:
-            dst_client = self.session
-        else:
-            dst_client = self.handler.server.sessions.get(destination)
+    def send(self, message):
+        self._send_raw(self._format_message_frame(message))
 
-        self._write(message, dst_client)
+    def _format_message_frame(self, message):
+        return "3:::{0}".format(message)
 
-    def send_event(self, name, *args):
-        self.send("5:::" + json.dumps({'name': name, 'args': args}))
+    def emit(self, name, *args):
+        self._send_raw(self._format_event_frame(name, *args))
+
+    def _format_event_frame(self, name, *args):
+        return "5:::" + json.dumps({'name': name, 'args': args})
 
     def receive(self):
         """Wait for incoming messages."""
 
         return self.session.get_server_msg()
 
-    def broadcast(self, message, exceptions=None, include_self=False):
+    def broadcast_send(self, message, **kwargs):
+        self._broadcast_raw(self._format_message_frame(message), **kwargs)
+
+    def broadcast_emit(self, name, *args, **kwargs):
+        self._broadcast_raw(self._format_event_frame(name, *args), **kwargs)
+
+    def _broadcast_raw(self, message, exceptions = None, include_self = False):
         """
         Send messages to all connected clients, except itself and some
         others.
@@ -47,9 +54,6 @@ class SocketIOProtocol(object):
             if session_id not in exceptions:
                 self._write(message, session)
 
-    def broadcast_event(self, name, *args, **kwargs):
-        self.broadcast("5:::" + json.dumps({'name': name, 'args': args}), **kwargs)
-
     def start_heartbeat(self):
         """Start the heartbeat Greenlet to check connection health."""
         def ping():
@@ -57,9 +61,18 @@ class SocketIOProtocol(object):
 
             while self.session.connected:
                 gevent.sleep(5.0) # FIXME: make this a setting
-                self.send("2::")
+                self._send_raw("2::")
 
         return gevent.spawn(ping)
+
+    def _send_raw(self, message, destination = None):
+        if destination is None:
+            dst_client = self.session
+        else:
+            dst_client = self.handler.server.sessions.get(destination)
+
+        self._write(message, dst_client)
+
 
     def _write(self, message, session=None):
         if session is None:
@@ -89,7 +102,7 @@ class SocketIOProtocol(object):
             return None
 
         elif msg_type == "1":
-            self.send("1::%s" % tail)
+            self._send_raw("1::%s" % tail)
             return None
 
         elif msg_type == "2":
@@ -106,7 +119,7 @@ class SocketIOProtocol(object):
             messages.append(message)
             self.ack(msg_id)
         elif msg_type == "4":
-            messages.append(json.loads(data))
+            raise Exception("TODO")
         elif msg_type == "5":
             message = json.loads(data)
 
