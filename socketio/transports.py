@@ -25,9 +25,9 @@ class BaseTransport(object):
         return self.handler.environ['socketio'].decode(data)
 
     def write(self, data=""):
-        if 'Content-Length' not in self.handler.response_headers_list:
+        response_headers_list = [header[0] for header in self.handler.response_headers]
+        if 'Content-Length' not in response_headers_list:
             self.handler.response_headers.append(('Content-Length', len(data)))
-            self.handler.response_headers_list.append('Content-Length')
 
         self.handler.write(data)
 
