@@ -129,6 +129,13 @@ class BaseNamespace(object):
         """
         args = pkt['args']
         name = pkt['name']
+        ack = pkt.get('ack')
+        event_id = pkt.get('id')
+
+        kwargs = {}
+        if ack and event_id:
+            kwargs['event_id'] = event_id
+
         if not self._event_name_regex.match(name):
             print "Message ignored, the bastard", name
             return
@@ -137,9 +144,9 @@ class BaseNamespace(object):
         # This means the args, passed as a list, will be expanded to Python args
         # and if you passed a dict, it will be a dict as the first parameter.
 
-        return self.call_method(method_name, *args)
+        return self.call_method(method_name, *args, **kwargs)
 
-    def call_method(self, method_name, *args):
+    def call_method(self, method_name, *args, **kwargs):
         """You should always use this function to call the methods,
         as it checks if you're allowed according to the set ACLs.
        
@@ -159,7 +166,7 @@ class BaseNamespace(object):
 
         # TODO: warning, it is possible that this call doesn't work because of
         #       the *args, so let's make sure something comes up wen it fails.
-        res = method(*args)
+        res = method(*args, **kwargs)
         return res
 
     def recv_initialize(self):
@@ -277,6 +284,10 @@ class BaseNamespace(object):
 
         self.socket.send_packet(pkt)
 
+    def ack(self, *args, **kwargs):
+        event_id = kwargs['event_id']
+        pkt = dict(type = "ack", ackId = event_id, args = args)
+        self.socket.send_packet(pkt)
 
     def spawn(self, fn, *args, **kwargs):
         """Spawn a new process, attached to this Namespace.
