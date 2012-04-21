@@ -58,8 +58,11 @@ class SocketIOServer(WSGIServer):
         socket = self.sockets.get(sessid)
 
         if socket is None:
-            socket = Socket(self)
-            self.sockets[socket.sessid] = socket
+            if sessid:
+                raise Exception('No session id {0} available'.format(sessid))
+            else:
+                socket = Socket(self)
+                self.sockets[socket.sessid] = socket
         else:
             socket.incr_hits()
 
